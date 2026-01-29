@@ -14,3 +14,7 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 strip = true
+
+[patch.crates-io]
+# Align with derive expectations in stellar-xdr when "arbitrary" is enabled.
+arbitrary = "1.4.2"
