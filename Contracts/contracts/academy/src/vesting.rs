@@ -1,4 +1,3 @@
-#![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, symbol_short, Vec};
 
 /// Vesting schedule for an academy reward
@@ -62,6 +61,24 @@ pub enum VestingError {
     Revoked = 4007,
     InvalidTimelock = 4008,
     NotEnoughTimeForRevoke = 4009,
+}
+
+impl From<VestingError> for soroban_sdk::Error {
+    fn from(error: VestingError) -> Self {
+        soroban_sdk::Error::from_contract_error(error as u32)
+    }
+}
+
+impl From<&VestingError> for soroban_sdk::Error {
+    fn from(error: &VestingError) -> Self {
+        soroban_sdk::Error::from_contract_error(*error as u32)
+    }
+}
+
+impl From<soroban_sdk::Error> for VestingError {
+    fn from(_error: soroban_sdk::Error) -> Self {
+        VestingError::Unauthorized
+    }
 }
 
 #[contract]
@@ -164,7 +181,7 @@ impl AcademyVestingContract {
             .storage()
             .persistent()
             .get(&schedules_key)
-            .unwrap_or_else(|_| soroban_sdk::Map::new(&env));
+            .unwrap_or_else(|| soroban_sdk::Map::new(&env));
 
         schedules.set(next_id, schedule);
         env.storage().persistent().set(&schedules_key, &schedules);

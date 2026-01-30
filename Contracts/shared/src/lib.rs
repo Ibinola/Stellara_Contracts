@@ -1,6 +1,6 @@
 //! Shared utilities and types for Stellara contracts
 
-use soroban_sdk::contracttype;
+use soroban_sdk::{contracttype, String};
 
 #[contracttype]
 #[derive(Clone, Debug)]

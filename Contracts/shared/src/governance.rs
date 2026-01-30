@@ -20,7 +20,7 @@ pub struct UpgradeProposal {
 
 /// Status of an upgrade proposal
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum ProposalStatus {
     Pending = 0,
@@ -32,7 +32,7 @@ pub enum ProposalStatus {
 
 /// Governance role
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum GovernanceRole {
     Admin = 0,        // Can propose upgrades and cancel
@@ -54,6 +54,18 @@ pub enum GovernanceError {
     ProposalNotFound = 2008,
 }
 
+impl From<GovernanceError> for soroban_sdk::Error {
+    fn from(error: GovernanceError) -> Self {
+        soroban_sdk::Error::from_contract_error(error as u32)
+    }
+}
+
+impl From<soroban_sdk::Error> for GovernanceError {
+    fn from(_error: soroban_sdk::Error) -> Self {
+        GovernanceError::Unauthorized
+    }
+}
+
 pub struct GovernanceManager;
 
 impl GovernanceManager {
@@ -64,12 +76,12 @@ impl GovernanceManager {
             .storage()
             .persistent()
             .get(&roles_key)
-            .unwrap_or_else(|_| soroban_sdk::Map::new(env));
+            .unwrap_or_else(|| soroban_sdk::Map::new(env));
 
         let user_role = role_map.get(address.clone()).unwrap_or(GovernanceRole::Executor);
         
         if user_role > required_role {
-            env.panic_with_error(symbol_short!("UNAUTH"));
+            panic!("UNAUTH");
         }
     }
 
@@ -88,7 +100,7 @@ impl GovernanceManager {
         Self::require_role(env, &proposer, GovernanceRole::Admin);
 
         // Validate threshold
-        if approval_threshold == 0 || approval_threshold as usize > approvers.len() {
+        if approval_threshold == 0 || approval_threshold > approvers.len() as u32 {
             return Err(GovernanceError::InvalidThreshold);
         }
 
@@ -123,7 +135,7 @@ impl GovernanceManager {
             .storage()
             .persistent()
             .get(&proposals_key)
-            .unwrap_or_else(|_| soroban_sdk::Map::new(env));
+            .unwrap_or_else(|| soroban_sdk::Map::new(env));
 
         proposals.set(next_id, proposal);
         env.storage().persistent().set(&proposals_key, &proposals);
@@ -162,7 +174,7 @@ impl GovernanceManager {
         }
 
         // Validate approver is in the list
-        if !proposal.approvers.iter().any(|a| a == &approver) {
+        if !proposal.approvers.iter().any(|a| a == approver) {
             return Err(GovernanceError::Unauthorized);
         }
 
@@ -172,7 +184,7 @@ impl GovernanceManager {
             .storage()
             .persistent()
             .get(&approvals_key)
-            .unwrap_or_else(|_| soroban_sdk::Map::new(env));
+            .unwrap_or_else(|| soroban_sdk::Map::new(env));
 
         if approvals.get((proposal_id, approver.clone())).is_some() {
             return Err(GovernanceError::DuplicateApproval);

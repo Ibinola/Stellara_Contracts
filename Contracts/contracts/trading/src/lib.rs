@@ -1,8 +1,8 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, symbol_short, symbol};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, symbol_short};
 use shared::fees::{FeeManager, FeeError};
 use shared::governance::{
-    GovernanceManager, GovernanceError, GovernanceRole, UpgradeProposal, ProposalStatus,
+    GovernanceManager, GovernanceRole, UpgradeProposal,
 };
 
 /// Version of this contract implementation
@@ -41,6 +41,24 @@ pub enum TradeError {
     InvalidAmount = 3002,
     ContractPaused = 3003,
     NotInitialized = 3004,
+}
+
+impl From<TradeError> for soroban_sdk::Error {
+    fn from(error: TradeError) -> Self {
+        soroban_sdk::Error::from_contract_error(error as u32)
+    }
+}
+
+impl From<&TradeError> for soroban_sdk::Error {
+    fn from(error: &TradeError) -> Self {
+        soroban_sdk::Error::from_contract_error(*error as u32)
+    }
+}
+
+impl From<soroban_sdk::Error> for TradeError {
+    fn from(_error: soroban_sdk::Error) -> Self {
+        TradeError::Unauthorized
+    }
 }
 
 #[contractimpl]
@@ -117,7 +135,7 @@ impl UpgradeableTradingContract {
             .unwrap_or(false);
 
         if is_paused {
-            env.panic_with_error(symbol_short!("PAUSED"));
+            panic!("PAUSED");
         }
 
         // Collect fee first
@@ -157,7 +175,7 @@ impl UpgradeableTradingContract {
             .storage()
             .persistent()
             .get(&trades_key)
-            .unwrap_or_else(|_| soroban_sdk::Vec::new(&env));
+            .unwrap_or_else(|| soroban_sdk::Vec::new(&env));
 
         trades.push_back(trade);
 

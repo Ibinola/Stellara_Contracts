@@ -2,19 +2,10 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { createClient, RedisClientType } from 'redis';
 
 @Injectable()
-export class RedisService
-  implements OnModuleInit, OnModuleDestroy
-{
-  public client: RedisClientType;
-  public pubClient: RedisClientType;
-  public subClient: RedisClientType;
-
-   constructor() {
-    this.client = new Redis({
-      host: process.env.REDIS_HOST,
-      port: Number(process.env.REDIS_PORT),
-    });
-  }
+export class RedisService implements OnModuleInit, OnModuleDestroy {
+  public client!: RedisClientType;
+  public pubClient!: RedisClientType;
+  public subClient!: RedisClientType;
 
   async onModuleInit() {
     const url = process.env.REDIS_URL || 'redis://localhost:6379';
