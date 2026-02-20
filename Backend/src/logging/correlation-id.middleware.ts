@@ -11,6 +11,7 @@ export class CorrelationIdMiddleware implements NestMiddleware {
 
     // make available on request object too
     req.headers['x-correlation-id'] = correlationId;
+    res.setHeader('x-correlation-id', correlationId);
 
     // start a context for async storage
     RequestContext.run(() => {

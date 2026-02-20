@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { StructuredLogger } from './structured-logger.service';
+import { MetricsService } from './metrics.service';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -27,6 +28,8 @@ export interface TrackedError {
 export class ErrorTrackingService {
   private readonly logger = new StructuredLogger(ErrorTrackingService.name);
 
+  constructor(private readonly metrics: MetricsService) {}
+
   async track(error: TrackedError) {
     // attach correlation id if not provided
     if (!error.correlationId) {
@@ -34,6 +37,9 @@ export class ErrorTrackingService {
       const RequestContext = require('./request-context').RequestContext;
       error.correlationId = RequestContext.get('correlationId');
     }
+
+    // increment metric by severity/category
+    this.metrics.incrementError(error.severity || ErrorSeverity.MEDIUM, error.category || 'general');
 
     // for now just log the object; in real world we'd send to remote
     this.logger.error('Tracked error', JSON.stringify(error), ErrorTrackingService.name);
