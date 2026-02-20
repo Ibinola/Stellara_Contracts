@@ -14,7 +14,7 @@ export class AuditLog {
   @Column({ nullable: true })
   entity_id?: string;
 
-  @Column('jsonb', { nullable: true })
+  @Column('text', { nullable: true })
   metadata?: Record<string, any>;
 
   @CreateDateColumn()

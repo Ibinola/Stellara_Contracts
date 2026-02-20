@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -48,29 +48,39 @@ import { ThrottleModule } from './throttle/throttle.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DB_HOST') || 'localhost',
-        port: configService.get('DB_PORT') || 5432,
-        username: configService.get('DB_USERNAME') || 'postgres',
-        password: configService.get('DB_PASSWORD') || 'password',
-        database:
-          configService.get('DB_DATABASE') || 'stellara_workflows',
-        entities: [
-          Workflow,
-          WorkflowStep,
-          User,
-          WalletBinding,
-          LoginNonce,
-          RefreshToken,
-          ApiToken,
-          AuditLog,
-          Consent,
-          VoiceJob,
-        ],
-        synchronize: configService.get('NODE_ENV') === 'development',
-        logging: configService.get('NODE_ENV') === 'development',
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbType = configService.get('DB_TYPE') || 'sqlite';
+        
+        const baseConfig: any = {
+          type: dbType,
+          synchronize: configService.get('NODE_ENV') === 'development',
+          logging: configService.get('NODE_ENV') === 'development',
+          entities: [
+            Workflow,
+            WorkflowStep,
+            User,
+            WalletBinding,
+            LoginNonce,
+            RefreshToken,
+            ApiToken,
+            AuditLog,
+            Consent,
+            VoiceJob,
+          ],
+        };
+
+        if (dbType === 'sqlite') {
+          baseConfig.database = configService.get('DB_DATABASE') || './stellar-events.db';
+        } else {
+          baseConfig.host = configService.get('DB_HOST') || 'localhost';
+          baseConfig.port = configService.get('DB_PORT') || 5432;
+          baseConfig.username = configService.get('DB_USERNAME') || 'postgres';
+          baseConfig.password = configService.get('DB_PASSWORD') || 'password';
+          baseConfig.database = configService.get('DB_DATABASE') || 'stellara_workflows';
+        }
+
+        return baseConfig;
+      },
     }),
 
     RedisModule,

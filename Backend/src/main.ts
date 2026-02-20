@@ -59,8 +59,11 @@ async function bootstrap() {
   const globalFilter = new AllExceptionsFilter(errorTracker, metricsService);
   app.useGlobalFilters(globalFilter);
 
-  // expose Prometheus metrics on a simple endpoint
-  app.get('/metrics', async (_req, res) => {
+  // expose Prometheus metrics on a simple endpoint via the underlying
+  // Express application rather than the Nest `get` which is meant for
+  // resolving providers.  The previous call resulted in a type error.
+  const expressApp: any = app.getHttpAdapter().getInstance();
+  expressApp.get('/metrics', async (_req, res) => {
     res.set('Content-Type', 'text/plain');
     res.send(await metricsService.getMetrics());
   });
