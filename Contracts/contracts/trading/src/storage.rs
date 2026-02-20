@@ -7,7 +7,6 @@
 //! - Lazy loading for trade history
 
 use soroban_sdk::{contracttype, Address, Env, Symbol, Vec, symbol_short};
-use shared::storage::{StoragePrefix, StorageKey, OptimizedStorage};
 
 /// Contract version for migration tracking
 const CONTRACT_VERSION: u32 = 2;
@@ -270,25 +269,31 @@ impl TradingStorage {
     const MAX_RECENT_TRADES: u32 = 100;
     
     fn add_to_recent_trades(env: &Env, trade_id: u64) {
-        let mut recent: Vec<u64> = env.storage().persistent()
+        let mut recent: Vec<u64> = env
+            .storage()
+            .persistent()
             .get(&TradingDataKey::RecentTrades)
             .unwrap_or_else(|| Vec::new(env));
-        
+
         recent.push_back(trade_id);
-        
-        // Keep only recent trades
-        while recent.len() > Self::MAX_RECENT_TRADES {
-            // Remove oldest (front of vector)
-            let mut new_recent = Vec::new(env);
+
+        if recent.len() > Self::MAX_RECENT_TRADES as usize {
+            let keep = Self::MAX_RECENT_TRADES as usize;
+            let start = recent.len().saturating_sub(keep);
+            let mut trimmed = Vec::new(env);
+
             for (i, id) in recent.iter().enumerate() {
-                if i > 0 {
-                    new_recent.push_back(id);
+                if i >= start {
+                    trimmed.push_back(id);
                 }
             }
-            recent = new_recent;
+
+            recent = trimmed;
         }
-        
-        env.storage().persistent().set(&TradingDataKey::RecentTrades, &recent);
+
+        env.storage()
+            .persistent()
+            .set(&TradingDataKey::RecentTrades, &recent);
     }
     
     pub fn get_recent_trade_ids(env: &Env) -> Vec<u64> {
