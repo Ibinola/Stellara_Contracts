@@ -34,6 +34,11 @@ import { GdprModule } from './gdpr/gdpr.module';
 import { Consent } from './gdpr/entities/consent.entity';
 import { VoiceJob } from './voice/entities/voice-job.entity';
 import { ThrottleModule } from './throttle/throttle.module';
+import { TenantModule } from './tenancy/tenant.module';
+import { Tenant } from './tenancy/entities/tenant.entity';
+import { TenantConfig } from './tenancy/entities/tenant-config.entity';
+import { TenantUsage } from './tenancy/entities/tenant-usage.entity';
+import { TenantInvitation } from './tenancy/entities/tenant-invitation.entity';
 
 
 @Module({
@@ -66,6 +71,11 @@ import { ThrottleModule } from './throttle/throttle.module';
             AuditLog,
             Consent,
             VoiceJob,
+            // Tenant entities
+            Tenant,
+            TenantConfig,
+            TenantUsage,
+            TenantInvitation,
           ],
         };
 
@@ -93,6 +103,7 @@ import { ThrottleModule } from './throttle/throttle.module';
     AuditModule,
     GdprModule,
     ThrottleModule,
+    TenantModule,
   ],
 
   controllers: [AppController],

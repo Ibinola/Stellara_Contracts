@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
 import { WalletBinding } from './wallet-binding.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { ApiToken } from './api-token.entity';
 import { Consent } from '../../gdpr/entities/consent.entity';
+import { Tenant } from '../../tenancy/entities/tenant.entity';
 
 @Entity('users')
 export class User {
@@ -35,4 +36,10 @@ export class User {
 
   @OneToMany(() => Consent, (consent) => consent.user)
   consents: Consent[];
+
+  @ManyToOne(() => Tenant, (tenant) => tenant.users, { nullable: true })
+  tenant: Tenant | null;
+
+  @Column({ nullable: true })
+  tenantId: string | null;
 }
