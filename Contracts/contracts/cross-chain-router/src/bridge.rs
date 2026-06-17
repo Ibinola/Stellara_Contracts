@@ -62,7 +62,7 @@ impl StellaraBridge {
         let mut roles: Map<Address, GovernanceRole> = Map::new(&env);
         roles.set(admin, GovernanceRole::Admin);
         env.storage().persistent().set(&symbol_short!("roles"), &roles);
-        env.storage().persistent().set(&symbol_short!("initialized"), &true);
+        env.storage().persistent().set(&symbol_short!("init"), &true);
     }
 
     pub fn deposit(env: Env, from: Address, asset: Address, amount: i128, dest_chain: u32, recipient: Address) -> BytesN<32> {

@@ -1,4 +1,5 @@
 #![no_std]
+pub mod bridge;
 use shared::nonce::NonceManager;
 use shared::reentrancy_guard::ReentrancyGuard;
 use soroban_sdk::{contract, contractimpl, contracttype, Env, Symbol, Vec, BytesN, Address, Bytes};
