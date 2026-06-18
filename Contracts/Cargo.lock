@@ -606,6 +606,7 @@ version = "0.1.0"
 dependencies = [
  "academy-rewards",
  "academy-vesting",
+ "cross-chain-router",
  "messaging",
  "shared",
  "social_rewards",
@@ -1266,6 +1267,7 @@ dependencies = [
 name = "stellara-synthetic-assets"
 version = "0.1.0"
 dependencies = [
+ "shared",
  "soroban-sdk",
 ]
 

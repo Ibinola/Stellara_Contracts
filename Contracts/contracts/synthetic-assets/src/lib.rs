@@ -49,7 +49,6 @@ pub struct SyntheticConfig {
 mod keys {
     use soroban_sdk::{symbol_short, Symbol};
     pub const ADMIN: Symbol = symbol_short!("admin");
-    pub const CONFIG: Symbol = symbol_short!("config");
 }
 
 #[contract]
