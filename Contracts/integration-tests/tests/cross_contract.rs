@@ -392,10 +392,3 @@ fn test_shared_governance_module_across_contracts() {
 //     assert!(result.is_err(), "Reentrancy should be blocked");
 //     ReentrancyGuard::exit(&env);
 // }
-    assert_eq!(msg_status,   ProposalStatus::Approved);
-
-    // ── Governance has no on-chain events — validate via state ────────────────
-    // Both proposals reached Approved status, confirming the governance module
-    // correctly processes propose → approve flows across contracts.
-    // (Event emission for governance transitions is tracked in issue #774)
-}
