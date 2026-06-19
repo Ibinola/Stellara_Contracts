@@ -1,5 +1,5 @@
 use soroban_sdk::{
-    contracttype, symbol_short, Address, Env, Symbol, Vec, Map, Bytes, BytesN,
+    contracttype, symbol_short, Address, Env, Symbol, Vec, Map, Bytes,
     contracterror, require_auth
 };
 use shared::governance::{GovernanceManager, GovernanceRole};
@@ -17,6 +17,7 @@ pub struct DIDDocument {
     pub created_at: u64,
     pub updated_at: u64,
     pub deactivated: bool,
+    pub owner: Address, // Add owner field
 }
 
 #[contracttype]
@@ -90,13 +91,43 @@ impl DIDRegistryContract {
         env.storage().persistent().set(&counter_key, &0u64);
     }
 
+    // Check if caller has governance permission or is the owner
+    fn is_authorized(env: &Env, caller: &Address, document: &DIDDocument) -> bool {
+        // Check if caller is the owner
+        if caller == &document.owner {
+            return true;
+        }
+        // Check if caller has admin role
+        let roles_key = symbol_short!("roles");
+        let role_map: Map<Address, GovernanceRole> = env
+            .storage()
+            .persistent()
+            .get(&roles_key)
+            .unwrap_or_else(|| Map::new(env));
+        
+        if let Some(role) = role_map.get(caller.clone()) {
+            if role <= GovernanceRole::Admin {
+                return true;
+            }
+        }
+        
+        false
+    }
+
     // Create DID document for did:stellar
     pub fn create_stellar_did(
         env: Env,
+        caller: Address,
         stellar_address: Address,
         verification_methods: Vec<VerificationMethod>,
         services: Vec<Service>,
     ) -> Symbol {
+        // Require caller authentication
+        require_auth!(&caller);
+        
+        // Check governance role
+        GovernanceManager::require_role(&env, &caller, GovernanceRole::Admin);
+
         // Validate stellar address format
         let did_str = format!("did:stellar:{}", stellar_address);
         let did_id = symbol_short!(&did_str);
@@ -122,6 +153,7 @@ impl DIDRegistryContract {
             created_at: env.ledger().timestamp(),
             updated_at: env.ledger().timestamp(),
             deactivated: false,
+            owner: stellar_address, // Set owner as the stellar address
         };
 
         // Store DID document
@@ -146,10 +178,18 @@ impl DIDRegistryContract {
     // Create DID document for did:key
     pub fn create_key_did(
         env: Env,
+        caller: Address,
         public_key: Bytes, // Multibase encoded
+        owner: Address, // Explicit owner
         verification_methods: Vec<VerificationMethod>,
         services: Vec<Service>,
     ) -> Symbol {
+        // Require caller authentication
+        require_auth!(&caller);
+        
+        // Check governance role
+        GovernanceManager::require_role(&env, &caller, GovernanceRole::Admin);
+
         // Validate public key format
         if public_key.is_empty() {
             panic!("Invalid public key");
@@ -180,6 +220,7 @@ impl DIDRegistryContract {
             created_at: env.ledger().timestamp(),
             updated_at: env.ledger().timestamp(),
             deactivated: false,
+            owner, // Set explicit owner
         };
 
         // Store DID document
@@ -209,17 +250,21 @@ impl DIDRegistryContract {
     // Update DID document (requires authentication)
     pub fn update_did_document(
         env: Env,
+        caller: Address,
         did: Symbol,
         verification_methods: Option<Vec<VerificationMethod>>,
         services: Option<Vec<Service>>,
     ) {
-        let caller = env.current_contract_address();
+        // Require caller authentication
+        require_auth!(&caller);
         
         // Get existing document
         let mut document = Self::get_did_document(env.clone(), did.clone()).unwrap();
         
-        // Check if caller is authorized (simplified - in production, use proper DID auth)
-        require_auth!(&caller);
+        // Check if caller is authorized
+        if !Self::is_authorized(&env, &caller, &document) {
+            panic!("Unauthorized");
+        }
 
         if document.deactivated {
             panic!("DID is deactivated");
@@ -256,14 +301,17 @@ impl DIDRegistryContract {
     }
 
     // Deactivate DID
-    pub fn deactivate_did(env: Env, did: Symbol) {
-        let caller = env.current_contract_address();
+    pub fn deactivate_did(env: Env, caller: Address, did: Symbol) {
+        // Require caller authentication
+        require_auth!(&caller);
         
         // Get existing document
         let mut document = Self::get_did_document(env.clone(), did.clone()).unwrap();
         
-        // Check authorization
-        require_auth!(&caller);
+        // Check if caller is authorized
+        if !Self::is_authorized(&env, &caller, &document) {
+            panic!("Unauthorized");
+        }
 
         if document.deactivated {
             panic!("DID already deactivated");
@@ -287,16 +335,20 @@ impl DIDRegistryContract {
     // Add verification method
     pub fn add_verification_method(
         env: Env,
+        caller: Address,
         did: Symbol,
         verification_method: VerificationMethod,
     ) {
-        let caller = env.current_contract_address();
+        // Require caller authentication
+        require_auth!(&caller);
         
         // Get existing document
         let mut document = Self::get_did_document(env.clone(), did.clone()).unwrap();
         
-        // Check authorization
-        require_auth!(&caller);
+        // Check if caller is authorized
+        if !Self::is_authorized(&env, &caller, &document) {
+            panic!("Unauthorized");
+        }
 
         if document.deactivated {
             panic!("DID is deactivated");
@@ -326,14 +378,17 @@ impl DIDRegistryContract {
     }
 
     // Add service
-    pub fn add_service(env: Env, did: Symbol, service: Service) {
-        let caller = env.current_contract_address();
+    pub fn add_service(env: Env, caller: Address, did: Symbol, service: Service) {
+        // Require caller authentication
+        require_auth!(&caller);
         
         // Get existing document
         let mut document = Self::get_did_document(env.clone(), did.clone()).unwrap();
         
-        // Check authorization
-        require_auth!(&caller);
+        // Check if caller is authorized
+        if !Self::is_authorized(&env, &caller, &document) {
+            panic!("Unauthorized");
+        }
 
         if document.deactivated {
             panic!("DID is deactivated");
@@ -374,7 +429,13 @@ impl DIDRegistryContract {
     }
 
     // Get all DIDs (for admin)
-    pub fn get_all_dids(env: Env) -> Vec<Symbol> {
+    pub fn get_all_dids(env: Env, caller: Address) -> Vec<Symbol> {
+        // Require caller authentication
+        require_auth!(&caller);
+        
+        // Check governance role
+        GovernanceManager::require_role(&env, &caller, GovernanceRole::Admin);
+        
         let dids_key = symbol_short!("dids");
         let dids: Map<Symbol, DIDDocument> = env
             .storage()
